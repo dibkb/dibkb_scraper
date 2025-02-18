@@ -65,8 +65,7 @@ Clone or download the repository and ensure that the package structure (includin
 Below is a sample code snippet to demonstrate how to use the AmazonScraper:
 
 ```python
-from dibkb_scraper import AmazonScraper  # Adjust the import based on your project structure
-
+from dibkb_scraper import AmazonScraper
 # Initialize the scraper with a valid Amazon ASIN
 asin = "B00935MGKK"
 scraper = AmazonScraper(asin)
@@ -222,7 +221,3 @@ Contributions are welcome! Please feel free to open an issue or submit a pull re
 ## Disclaimer
 
 This package is provided for educational and research purposes only. Users must comply with Amazon's terms of service and applicable laws when scraping websites. Use the package responsibly.
-
----
-
-Your Lordship 👑, this documentation should help you get started with and fully utilize the AmazonScraper package. Should you have any further questions or need additional assistance, please consult the repository or reach out to the maintainers.
