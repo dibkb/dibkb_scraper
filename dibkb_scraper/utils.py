@@ -1,8 +1,4 @@
 import re
-def extract_numbers(input_string)->int:
-    # Remove all non-numeric characters and convert to integer
-    return int(re.sub(r'\D', '', input_string))
-
 
 def filter_unicode(input_string)->str:
     return input_string.encode('ascii', 'ignore').decode()

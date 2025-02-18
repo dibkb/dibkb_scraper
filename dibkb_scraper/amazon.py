@@ -1,11 +1,12 @@
 from .models import (
     AmazonProductResponse, Description, 
-    Pricing, Product, Ratings, Specifications
+    Product, Ratings, Specifications
 )
-from .utils import extract_numbers, extract_text, filter_unicode, AMAZON_HEADERS
+from .utils import extract_text, filter_unicode, AMAZON_HEADERS
 import httpx
 from bs4 import BeautifulSoup
 from typing import Dict, List, Optional, Union
+import json
 
 
 
@@ -39,22 +40,16 @@ class AmazonScraper:
         except AttributeError:
             return None
 
-    def get_mrp(self) -> Optional[float]:
-        try:
-            mrp_elem = self.soup.find("span", {"class": "a-size-mini a-color-secondary aok-nowrap a-text-strike"})
-            if mrp_elem:
-                return extract_numbers(mrp_elem.text.strip())
-            return None
-        except AttributeError:
-            return None
-
     def get_selling_price(self) -> Optional[float]:
         try:
-            price_elem = self.soup.find("span", {"class": "a-price-whole"})
+            price_elem = self.soup.find("div", {"class": "a-section aok-hidden twister-plus-buying-options-price-data"})
             if price_elem:
-                return extract_numbers(price_elem.text.strip())
+                price_data = json.loads(price_elem.text.strip())
+                display_price = price_data["desktop_buybox_group_1"][0]["displayPrice"]
+                price = float(display_price.replace("₹", "").replace(",", ""))
+                return price
             return None
-        except AttributeError:
+        except (AttributeError, json.JSONDecodeError, KeyError):
             return None
 
     def get_tags(self) -> List[str]:
@@ -198,7 +193,7 @@ class AmazonScraper:
             return AmazonProductResponse(
                 error="Failed to fetch page",
                 product=Product(
-                    pricing=Pricing(),
+                    pricing = None,
                     description=Description(),
                     specifications=Specifications(),
                     ratings=Ratings()
@@ -208,10 +203,7 @@ class AmazonScraper:
         return AmazonProductResponse(
             product=Product(
                 title=self.get_product_title(),
-                pricing=Pricing(
-                    mrp=self.get_mrp(),
-                    selling_price=self.get_selling_price()
-                ),
+                price = self.get_selling_price(),
                 categories=self.get_tags(),
                 description=Description(
                     highlights=self.get_about()
