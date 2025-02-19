@@ -1,6 +1,7 @@
+import math
 from .models import (
     AmazonProductResponse, Description, RatingPercentage,
-    Product, Ratings, Specifications
+    Product, RatingStats, Ratings, Specifications, StarRating
 )
 from .utils import extract_text, filter_unicode, AMAZON_HEADERS
 import httpx
@@ -172,7 +173,8 @@ class AmazonScraper:
         try:
             result = Ratings(
                 rating=None,
-                review_count=None
+                review_count=None,
+                rating_stats=None
             )
             
             # Get rating
@@ -202,13 +204,28 @@ class AmazonScraper:
                         result.rating = float(alt_review_elem["title"].strip().split()[0])
                 except (ValueError, TypeError, AttributeError):
                     pass
+            
+            rating_percentage = self.get_rating_percentage()
+            
+
+            number_to_word = {1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five'}
+            star_ratings = {}
+            for stars in range(1, 6):
+                percentage = getattr(rating_percentage, f"{number_to_word[stars]}_star")
+
+                count = math.floor(percentage * result.review_count / 100) if percentage and result.review_count else None
+
+                star_ratings[f"{number_to_word[stars]}_star"] = StarRating(count=count, percentage=percentage)
+            
+            result.rating_stats = RatingStats(**star_ratings)
 
             return result
             
         except Exception as e:
             return Ratings(
                 rating=None,
-                review_count=None
+                review_count=None,
+                rating_stats=None
             )
 
     def get_about(self) -> Union[List[str], Dict[str, str]]:
