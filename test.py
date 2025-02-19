@@ -1,4 +1,5 @@
 from dibkb_scraper import AmazonScraper
-asin = "B071VNHMX2"
+asin = "B09ZV233RH"
+
 scraper = AmazonScraper(asin)
-print(scraper.get_all_details())
+print(scraper.get_rating_percentage())

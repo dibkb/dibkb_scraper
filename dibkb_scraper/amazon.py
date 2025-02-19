@@ -1,5 +1,5 @@
 from .models import (
-    AmazonProductResponse, Description, 
+    AmazonProductResponse, Description, RatingPercentage,
     Product, Ratings, Specifications
 )
 from .utils import extract_text, filter_unicode, AMAZON_HEADERS
@@ -115,6 +115,58 @@ class AmazonScraper:
 
         except Exception as e:
             return {"error": str(e)}
+
+    def get_rating_percentage(self) -> RatingPercentage:
+        try:
+            rating_percentage = self.soup.find_all("span", {"class": "_cr-ratings-histogram_style_histogram-column-space__RKUAd"})[5:10]
+            
+            if not rating_percentage:
+                return RatingPercentage(
+                    one_star=None,
+                    two_star=None,
+                    three_star=None,
+                    four_star=None,
+                    five_star=None
+                )
+            
+            ratings = []
+            for span in rating_percentage:
+                try:
+                    text = span.text.strip()
+                    value = int(text.replace("%", ""))
+                    if 0 <= value <= 100:  # Validate percentage range
+                        ratings.append(value)
+                    else:
+                        raise ValueError("Percentage out of range")
+                except (ValueError, AttributeError):
+                    ratings.append(None)
+
+            if len(ratings) != 5 or None in ratings:
+                return RatingPercentage(
+                    one_star=None,
+                    two_star=None,
+                    three_star=None,
+                    four_star=None,
+                    five_star=None
+                )
+            
+            return RatingPercentage(
+                five_star=ratings[0],
+                four_star=ratings[1],
+                three_star=ratings[2],
+                two_star=ratings[3],
+                one_star=ratings[4]
+            )
+
+        
+        except Exception as e:
+            return RatingPercentage(
+                one_star=None,
+                two_star=None,
+                three_star=None,
+                four_star=None,
+                five_star=None
+            )
 
     def get_ratings(self) -> Ratings:
         try:

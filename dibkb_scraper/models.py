@@ -7,6 +7,14 @@ class Ratings:
     review_count: Optional[int] = None
 
 @dataclass
+class RatingPercentage:
+    one_star: Optional[int] = None
+    two_star: Optional[int] = None
+    three_star: Optional[int] = None
+    four_star: Optional[int] = None
+    five_star: Optional[int] = None
+
+@dataclass
 class Description:
     highlights: List[str] = None
 
