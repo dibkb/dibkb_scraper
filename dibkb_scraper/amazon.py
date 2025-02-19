@@ -1,7 +1,7 @@
 import math
 from .models import (
     AmazonProductResponse, Description, RatingPercentage,
-    Product, RatingStats, Ratings, Specifications, StarRating
+    Product, RatingStats, Ratings, Review, Specifications, StarRating
 )
 from .utils import extract_text, filter_unicode, AMAZON_HEADERS
 import httpx
@@ -255,7 +255,59 @@ class AmazonScraper:
         except Exception as e:
             return {"error": f"Unexpected error: {str(e)}"}
 
+    def get_all_reviews(self) -> List[Review]:
+        """
+        Retrieves all reviews from the product page.
+        
+        Returns:
+            List[Dict[str, Optional[str]]]: List of reviews, each containing user, rating, title, text and date
+        """
+        reviews = []
+        try:
+            review_elems = self.soup.find_all("div", {"class": "cr-lightbox-review-information"})
+            
+            for review in review_elems[1:]:
+                review_data = {
+                    "user": None,
+                    "rating": None,
+                    "title": None,
+                    "text": None,
+                    "date": None
+                }
+                
+                try:
+                    if user_elem := review.find("span", {"class": "a-profile-name"}):
+                        review_data["user"] = user_elem.text.strip()
 
+                    if rating_elem := review.find("span", {"class": "a-icon-alt"}):
+                        rating_text = rating_elem.text.strip().split()[0]
+                        review_data["rating"] = rating_text
+                        
+                    if title_elem := review.find("h5", {"class": "cr-lightbox-review-title"}):
+                        review_data["title"] = title_elem.text.strip()
+                        
+                    if text_elem := review.find("span", {"class": "cr-lightbox-review-body"}):
+                        review_data["text"] = text_elem.text.strip()
+                    if date_elem := review.find("span", {"class": "cr-lightbox-review-origin"}):
+                        date_text = date_elem.text.strip()
+                        if "on" in date_text:
+                            review_data["date"] = date_text.split("on")[1].strip()
+                        else:
+                            review_data["date"] = date_text
+                    reviews.append(Review(**review_data))
+                    
+                except AttributeError as e:
+                    print(f"Error parsing individual review: {str(e)}")
+                    continue
+                    
+            return reviews
+            
+        except Exception as e:
+            print(f"Error fetching reviews: {str(e)}")
+            return []
+            
+            
+            
     def get_all_details(self) -> AmazonProductResponse:
         """Get all product details in a single dictionary"""
         if not self.soup:
@@ -265,10 +317,10 @@ class AmazonScraper:
                     pricing = None,
                     description=Description(),
                     specifications=Specifications(),
-                    ratings=Ratings()
+                    ratings=Ratings(),
+                    reviews=[]
                 )
             )
-            
         return AmazonProductResponse(
             product=Product(
                 title=self.get_product_title(),
@@ -282,7 +334,8 @@ class AmazonScraper:
                     additional=self.get_additional_info(),
                     details=self.get_product_details()
                 ),
-                ratings=self.get_ratings()
+                ratings=self.get_ratings(),
+                reviews=self.get_all_reviews()
             )
         )
 
