@@ -18,7 +18,7 @@ class AmazonScraper:
         self.headers = AMAZON_HEADERS
         self.soup = self._get_soup()
     
-
+    
     def page_html_to_text(self,name:Optional[str]=None):
         if not name:
             name = self.asin
@@ -228,6 +228,41 @@ class AmazonScraper:
                 rating_stats=None
             )
 
+    def get_product_images(self) -> Optional[List[str]]:
+        try:
+            images = []
+            
+            # Get main product image
+            if img_parent := self.soup.find("div", {"id": "imgTagWrapperId"}):
+                if img_element := img_parent.find("img"):
+                    if img_url := img_element.get("src"):
+                        images.append(img_url)
+
+            # Get thumbnail images
+            for img in self.soup.find_all("span", {"class": "a-button a-button-thumbnail a-button-toggle"}):
+                try:
+                    if img_element := img.find("img"):
+                        if img_url := img_element.get("src"):
+                            images.append(img_url)
+                except AttributeError:
+                    continue
+
+            # Extract valid image IDs
+            img_ids = [
+                image.split("/I/")[-1].split("._")[0]
+                for image in images
+                if len(image.split("/I/")) > 1  # Ensure URL contains "/I/" segment
+            ]
+            
+            # Filter for valid 11-char IDs
+            valid_ids = [img_id for img_id in img_ids if len(img_id) == 11]
+            
+            return valid_ids if valid_ids else None
+
+        except Exception as e:
+            print(f"Error extracting product images: {str(e)}")
+            return None
+
     def get_about(self) -> Union[List[str], Dict[str, str]]:
         try:
             if not self.soup:
@@ -324,6 +359,7 @@ class AmazonScraper:
         return AmazonProductResponse(
             product=Product(
                 title=self.get_product_title(),
+                image = self.get_product_images(),
                 price = self.get_selling_price(),
                 categories=self.get_tags(),
                 description=Description(

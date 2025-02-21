@@ -49,6 +49,7 @@ class Specifications:
 @dataclass
 class Product:
     title: Optional[str] = None
+    image: Optional[str] = None
     price: float = None
     categories: List[str] = None
     description: Description = None
