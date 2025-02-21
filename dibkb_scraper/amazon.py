@@ -49,6 +49,12 @@ class AmazonScraper:
                 display_price = price_data["desktop_buybox_group_1"][0]["displayPrice"]
                 price = float(display_price.replace("₹", "").replace(",", ""))
                 return price
+            
+            price_elem = self.soup.find("span", {"class": "a-price-whole"})
+            if price_elem:
+                price = float(price_elem.text.strip().replace("₹", "").replace(",", ""))
+                
+                return price
             return None
         except (AttributeError, json.JSONDecodeError, KeyError):
             return None
@@ -235,26 +241,20 @@ class AmazonScraper:
             # Get main product image
             if img_parent := self.soup.find("div", {"id": "imgTagWrapperId"}):
                 if img_element := img_parent.find("img"):
-                    if img_url := img_element.get("src"):
-                        images.append(img_url)
-
-            # Get thumbnail images
-            for img in self.soup.find_all("span", {"class": "a-button a-button-thumbnail a-button-toggle"}):
-                try:
-                    if img_element := img.find("img"):
-                        if img_url := img_element.get("src"):
-                            images.append(img_url)
-                except AttributeError:
-                    continue
-
-            # Extract valid image IDs
+                    if dynamic_images := img_element.get("data-a-dynamic-image"):
+                        try:
+                            # Parse the JSON string containing image URLs
+                            image_dict = json.loads(dynamic_images)
+                            # Add all image URLs to the list
+                            images.extend(list(image_dict.keys()))
+                        except json.JSONDecodeError:
+                            pass
             img_ids = [
                 image.split("/I/")[-1].split("._")[0]
                 for image in images
                 if len(image.split("/I/")) > 1  # Ensure URL contains "/I/" segment
             ]
             
-            # Filter for valid 11-char IDs
             valid_ids = [img_id for img_id in img_ids if len(img_id) == 11]
             
             return valid_ids if valid_ids else None
