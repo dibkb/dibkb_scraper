@@ -236,27 +236,45 @@ class AmazonScraper:
 
     def get_product_images(self) -> Optional[List[str]]:
         try:
-            images = []
+            # Find the script that contains the image data
+            script = self.soup.find("script", text=lambda t: t and "ImageBlockATF" in t)
+            if not script:
+                return None
             
-            # Get main product image
-            if img_parent := self.soup.find("div", {"id": "imgTagWrapperId"}):
-                if img_element := img_parent.find("img"):
-                    if dynamic_images := img_element.get("data-a-dynamic-image"):
-                        try:
-                            # Parse the JSON string containing image URLs
-                            image_dict = json.loads(dynamic_images)
-                            # Add all image URLs to the list
-                            images.extend(list(image_dict.keys()))
-                        except json.JSONDecodeError:
-                            pass
+            # Extract the colorImages data using string manipulation
+            script_text = script.text
+            start_idx = script_text.find("'colorImages': { 'initial': ")
+            if start_idx == -1:
+                return None
+            
+            # Find the matching closing bracket
+            start_idx += len("'colorImages': { 'initial': ")
+            bracket_count = 0
+            end_idx = start_idx
+            
+            for i in range(start_idx, len(script_text)):
+                if script_text[i] == '[':
+                    bracket_count += 1
+                elif script_text[i] == ']':
+                    bracket_count -= 1
+                    if bracket_count == 0:
+                        end_idx = i + 1
+                        break
+            
+            json_str = script_text[start_idx:end_idx]
+            image_data = json.loads(json_str)
+            
+            # Extract hiRes URLs from the image data
+            images = [img["hiRes"] for img in image_data if "hiRes" in img]
+            
+            # Extract image IDs as before
             img_ids = [
                 image.split("/I/")[-1].split("._")[0]
                 for image in images
-                if len(image.split("/I/")) > 1  # Ensure URL contains "/I/" segment
+                if len(image.split("/I/")) > 1
             ]
             
             valid_ids = [img_id for img_id in img_ids if len(img_id) == 11]
-            
             return valid_ids if valid_ids else None
 
         except Exception as e:
@@ -290,7 +308,7 @@ class AmazonScraper:
         except Exception as e:
             return {"error": f"Unexpected error: {str(e)}"}
 
-    def get_all_reviews(self) -> List[Review]:
+    def get_all_reviews(self) -> List[str]:
         """
         Retrieves all reviews from the product page.
         
@@ -299,42 +317,12 @@ class AmazonScraper:
         """
         reviews = []
         try:
-            review_elems = self.soup.find_all("div", {"class": "cr-lightbox-review-information"})
-            
-            for review in review_elems[1:]:
-                review_data = {
-                    "user": None,
-                    "rating": None,
-                    "title": None,
-                    "text": None,
-                    "date": None
-                }
-                
-                try:
-                    if user_elem := review.find("span", {"class": "a-profile-name"}):
-                        review_data["user"] = user_elem.text.strip()
 
-                    if rating_elem := review.find("span", {"class": "a-icon-alt"}):
-                        rating_text = rating_elem.text.strip().split()[0]
-                        review_data["rating"] = rating_text
-                        
-                    if title_elem := review.find("h5", {"class": "cr-lightbox-review-title"}):
-                        review_data["title"] = title_elem.text.strip()
-                        
-                    if text_elem := review.find("span", {"class": "cr-lightbox-review-body"}):
-                        review_data["text"] = text_elem.text.strip()
-                    if date_elem := review.find("span", {"class": "cr-lightbox-review-origin"}):
-                        date_text = date_elem.text.strip()
-                        if "on" in date_text:
-                            review_data["date"] = date_text.split("on")[1].strip()
-                        else:
-                            review_data["date"] = date_text
-                    reviews.append(Review(**review_data))
-                    
-                except AttributeError as e:
-                    print(f"Error parsing individual review: {str(e)}")
-                    continue
-                    
+            review_elem = self.soup.find_all("div", {"class": "review-text-content"})
+
+            for x in review_elem:
+                reviews.append(x.text.strip())
+            
             return reviews
             
         except Exception as e:

@@ -1,13 +1,6 @@
 from typing import List, Optional, Dict
 from dataclasses import dataclass
 
-@dataclass
-class Review:
-    user: Optional[str] = None
-    rating: Optional[str] = None
-    title: Optional[str] = None
-    text: Optional[str] = None
-    date: Optional[str] = None
 
 @dataclass
 class StarRating:
@@ -55,7 +48,7 @@ class Product:
     description: Description = None
     specifications: Specifications = None
     ratings: Ratings = None
-    reviews: List[Review] = None
+    reviews: List[str] = None
 
 @dataclass
 class AmazonProductResponse:

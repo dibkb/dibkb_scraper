@@ -2,6 +2,10 @@
 
 AmazonScraper is a Python package for scraping product details from Amazon.in using a product's ASIN. It retrieves various pieces of information including the product title, pricing, categories, technical details, additional specifications, ratings, and feature highlights.
 
+## Downloads
+
+[![PyPI Downloads](https://static.pepy.tech/badge/dibkb-scraper)](https://pepy.tech/projects/dibkb-scraper)
+
 ## Table of Contents
 
 - [Overview](#overview)
