@@ -1,12 +1,12 @@
 import math
 from .models import (
-    AmazonProductResponse, Description, RatingPercentage,
+    AmazonProductResponse, Competitor, Description, RatingPercentage,
     Product, RatingStats, Ratings, Specifications, StarRating
 )
 from .utils import extract_text, filter_unicode, AMAZON_HEADERS
 import httpx
 from bs4 import BeautifulSoup
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import json
 
 
@@ -359,9 +359,75 @@ class AmazonScraper:
                     details=self.get_product_details()
                 ),
                 ratings=self.get_ratings(),
-                reviews=self.get_all_reviews()
+                reviews=self.get_all_reviews(),
+                related_products=self.get_related_products()
             )
         )
+    
+    def get_html(self) -> str:
+        return self.soup.prettify()
+    
+    def get_related_products(self) -> List[Competitor]:
+        try:
+            competitors: List[Dict[str, Any]] = []
+            carousel_items = self.soup.find_all("li", {"class": "a-carousel-card"}) or []
+            
+            for item in carousel_items:
+                try:
+                    # Find div and safely get data
+                    div = item.find("div", {"data-adfeedbackdetails": True})
+                    if not div or not div.get("data-adfeedbackdetails"):
+                        continue
+                        
+                    data = div.get("data-adfeedbackdetails", "{}")
+                    competitor_data = json.loads(data)
+                    
+                    # Skip if missing required data
+                    if not isinstance(competitor_data, dict):
+                        continue
+                        
+                    competitors.append(competitor_data)
+                    
+                except (json.JSONDecodeError, AttributeError) as e:
+                    print(f"Error parsing carousel item: {str(e)}")
+                    continue
+
+            results: List[Competitor] = []
+            for competitor in competitors:
+                try:
+                    # Safely extract data with fallbacks
+                    result = {
+                        "asin": competitor.get("asin", ""),
+                        "title": competitor.get("title", ""),
+                        "price": competitor.get("priceAmount", None),
+                        "img_id": ""
+                    }
+                    
+                    # Safely extract image ID
+                    try:
+                        img_data = competitor.get("adCreativeImage", {})
+                        if isinstance(img_data, dict):
+                            low_res = img_data.get("lowResolutionImage", {})
+                            if isinstance(low_res, dict):
+                                img_url = low_res.get("url", "")
+                                if "/" in img_url and "._" in img_url:
+                                    result["img_id"] = img_url.split("/I/")[-1].split("._")[0]
+                    except (AttributeError, IndexError) as e:
+                        print(f"Error extracting image ID: {str(e)}")
+                    
+                    # Only add if we have minimum required data
+                    if result["asin"] and result["title"]:
+                        results.append(Competitor(**result))
+                        
+                except Exception as e:
+                    print(f"Error processing competitor data: {str(e)}")
+                    continue
+
+            return results
+            
+        except Exception as e:
+            print(f"Error in get_related_products: {str(e)}")
+            return []
 
 
 # scraper = AmazonScraper("B00935MGKK")

@@ -40,6 +40,13 @@ class Specifications:
     details: Dict[str, str] = None
 
 @dataclass
+class Competitor:
+    asin: str
+    title: str
+    img_id: str
+    price: float
+    
+@dataclass
 class Product:
     title: Optional[str] = None
     image: Optional[List[str]] = None
@@ -49,8 +56,10 @@ class Product:
     specifications: Specifications = None
     ratings: Ratings = None
     reviews: List[str] = None
-
+    related_products: List[Competitor] = None
 @dataclass
 class AmazonProductResponse:
     product: Product
     error: Optional[str] = None 
+
+
