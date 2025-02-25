@@ -1,7 +1,7 @@
 import math
 from .models import (
     AmazonProductResponse, Description, RatingPercentage,
-    Product, RatingStats, Ratings, Review, Specifications, StarRating
+    Product, RatingStats, Ratings, Specifications, StarRating
 )
 from .utils import extract_text, filter_unicode, AMAZON_HEADERS
 import httpx

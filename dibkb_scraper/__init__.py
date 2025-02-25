@@ -1,7 +1,7 @@
 from .amazon import AmazonScraper
 from .models import (
     AmazonProductResponse, Description, 
-    Product, Ratings, Specifications, Review
+    Product, Ratings, Specifications
 )
 
-__version__ = "0.1.6"
+__version__ = "0.2.3"
