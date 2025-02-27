@@ -1,5 +1,5 @@
 from dibkb_scraper import AmazonScraper
-asin = "B0DRC6HQN3"
+asin = "B0CW6CKFG4"
 
 scraper = AmazonScraper(asin)
 # scraper.page_html_to_text()

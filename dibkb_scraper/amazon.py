@@ -175,13 +175,9 @@ class AmazonScraper:
                 five_star=None
             )
 
-    def get_ratings(self) -> Ratings:
+    def get_ratings(self)->Dict[str,Any]:
         try:
-            result = Ratings(
-                rating=None,
-                review_count=None,
-                rating_stats=None
-            )
+            result = {}
             
             # Get rating
             rating_elem = self.soup.find("span", {"data-hook": "rating-out-of-text"})
@@ -189,7 +185,7 @@ class AmazonScraper:
                 ratings_text = rating_elem.text.strip().split()
                 if ratings_text and len(ratings_text) >= 1:
                     try:
-                        result.rating = float(ratings_text[0])
+                        result["rating"] = float(ratings_text[0])
                     except (ValueError, TypeError):
                         pass
 
@@ -198,12 +194,12 @@ class AmazonScraper:
             if review_elem:
                 review_text = review_elem.text.strip().replace(',', '') 
                 try:
-                    result.review_count = int(''.join(filter(str.isdigit, review_text)))
+                    result["review_count"] = int(''.join(filter(str.isdigit, review_text)))
                 except (ValueError, TypeError):
                     pass
 
             # Try alternative rating source if main one failed
-            if result.rating is None:
+            if result["rating"] is None:
                 try:
                     alt_review_elem = self.soup.find("span", {"class": "reviewCountTextLinkedHistogram"})
                     if alt_review_elem and alt_review_elem.get("title"):
@@ -219,20 +215,15 @@ class AmazonScraper:
             for stars in range(1, 6):
                 percentage = getattr(rating_percentage, f"{number_to_word[stars]}_star")
 
-                count = math.floor(percentage * result.review_count / 100) if percentage and result.review_count else None
+                count = math.floor(percentage * result["review_count"] / 100) if percentage and result["review_count"] else None
 
-                star_ratings[f"{number_to_word[stars]}_star"] = StarRating(count=count, percentage=percentage)
-            
-            result.rating_stats = RatingStats(**star_ratings)
+                star_ratings[f"{number_to_word[stars]}_star"] = {"count":count, "percentage":percentage}
 
+            result["rating_stats"] = star_ratings
             return result
             
         except Exception as e:
-            return Ratings(
-                rating=None,
-                review_count=None,
-                rating_stats=None
-            )
+            return {}
 
     def get_product_images(self) -> Optional[List[str]]:
         try:
