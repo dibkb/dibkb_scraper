@@ -51,7 +51,7 @@ AmazonScraper is designed to extract detailed information from an Amazon.in prod
 Install the dependencies via pip:
 
 ```bash
-pip install httpx beautifulsoup4 pydantic
+pip install httpx beautifulsoup4 pydantic fake_useragent
 ```
 
 ## Installation

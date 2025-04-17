@@ -3,7 +3,7 @@ from .models import (
     AmazonProductResponse, Competitor, Description, RatingPercentage,
     Product, RatingStats, Ratings, Specifications, StarRating
 )
-from .utils import extract_text, filter_unicode, AMAZON_HEADERS
+from .utils import extract_text, filter_unicode, make_headers
 import httpx
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union
@@ -15,7 +15,7 @@ class AmazonScraper:
     def __init__(self, asin: str):
         self.asin = asin
         self.url = f"https://www.amazon.in/dp/{self.asin}"
-        self.headers = AMAZON_HEADERS
+        self.headers = make_headers()
         self.soup = self._get_soup()
     
     

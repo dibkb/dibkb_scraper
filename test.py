@@ -1,7 +1,16 @@
 from dibkb_scraper import AmazonScraper
-asin = "B0CW6CKFG4"
+from dibkb_scraper.playwright import PlaywrightScraper
+import asyncio
+asin = "B0DFB26FD8"
 
 scraper = AmazonScraper(asin)
-# scraper.page_html_to_text()
-print(scraper.get_all_details())
+print(scraper.get_html())
 
+# async def main():
+#     scraper = PlaywrightScraper()
+#     await scraper.initialize()
+#     print(await scraper.get_html_content("https://www.amazon.in/dp/B0DFB26FD8"))
+#     await scraper.close()
+
+# if __name__ == "__main__":
+#     asyncio.run(main())

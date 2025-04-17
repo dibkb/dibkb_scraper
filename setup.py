@@ -2,13 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name="dibkb_scraper",
-    version="0.2.7",
+    version="0.2.9",
     packages=find_packages(),
     install_requires=[
         "httpx",
         "beautifulsoup4",
         "bs4",
         "pydantic",
+        "fake-useragent"
     ],
     author="Dibas K Borborah",
     author_email="dibas9110@gmail.com",
