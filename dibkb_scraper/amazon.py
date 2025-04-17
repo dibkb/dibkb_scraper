@@ -1,8 +1,4 @@
 import math
-from .models import (
-    AmazonProductResponse, Competitor, Description, RatingPercentage,
-    Product, RatingStats, Ratings, Specifications, StarRating
-)
 from .utils import extract_text, filter_unicode, make_headers
 import httpx
 from bs4 import BeautifulSoup
@@ -36,8 +32,8 @@ class AmazonScraper:
 
     def get_product_title(self) -> Optional[str]:
         try:
-            title_elem = self.soup.find('span', {'id': 'productTitle'})
-            return title_elem.text.strip() if title_elem else None
+            title_elem = self.soup.find('input', {'id': 'productTitle'})
+            return title_elem.get('value') if title_elem else None
         except AttributeError:
             return None
 
@@ -123,18 +119,18 @@ class AmazonScraper:
         except Exception as e:
             return {"error": str(e)}
 
-    def get_rating_percentage(self) -> RatingPercentage:
+    def get_rating_percentage(self):
         try:
             rating_percentage = self.soup.find_all("span", {"class": "_cr-ratings-histogram_style_histogram-column-space__RKUAd"})[5:10]
             
             if not rating_percentage:
-                return RatingPercentage(
-                    one_star=None,
-                    two_star=None,
-                    three_star=None,
-                    four_star=None,
-                    five_star=None
-                )
+                return {
+                    "one_star":None,
+                    "two_star":None,
+                    "three_star":None,
+                    "four_star":None,
+                    "five_star":None
+                }
             
             ratings = []
             for span in rating_percentage:
@@ -149,31 +145,31 @@ class AmazonScraper:
                     ratings.append(None)
 
             if len(ratings) != 5 or None in ratings:
-                return RatingPercentage(
-                    one_star=None,
-                    two_star=None,
-                    three_star=None,
-                    four_star=None,
-                    five_star=None
-                )
+                    return {
+                    "one_star":None,
+                    "two_star":None,
+                    "three_star":None,
+                    "four_star":None,
+                    "five_star":None
+                }
             
-            return RatingPercentage(
-                five_star=ratings[0],
-                four_star=ratings[1],
-                three_star=ratings[2],
-                two_star=ratings[3],
-                one_star=ratings[4]
-            )
+            return {
+                "five_star":ratings[0],
+                "four_star":ratings[1],
+                "three_star":ratings[2],
+                "two_star":ratings[3],
+                "one_star":ratings[4]
+            }
 
         
         except Exception as e:
-            return RatingPercentage(
-                one_star=None,
-                two_star=None,
-                three_star=None,
-                four_star=None,
-                five_star=None
-            )
+            return {
+                "one_star":None,
+                "two_star":None,
+                "three_star":None,
+                "four_star":None,
+                "five_star":None
+            }
 
     def get_ratings(self)->Dict[str,Any]:
         try:
@@ -359,7 +355,7 @@ class AmazonScraper:
     def get_html(self) -> str:
         return self.soup.prettify()
     
-    def get_related_products(self) -> List[Competitor]:
+    def get_related_products(self):
         try:
             competitors: List[Dict[str, Any]] = []
             carousel_items = self.soup.find_all("li", {"class": "a-carousel-card"}) or []
@@ -384,7 +380,7 @@ class AmazonScraper:
                     print(f"Error parsing carousel item: {str(e)}")
                     continue
 
-            results: List[Competitor] = []
+            results = []
             for competitor in competitors:
                 try:
                     # Safely extract data with fallbacks
@@ -409,7 +405,7 @@ class AmazonScraper:
                     
                     # Only add if we have minimum required data
                     if result["asin"] and result["title"]:
-                        results.append(Competitor(**result))
+                        results.append(result)
                         
                 except Exception as e:
                     print(f"Error processing competitor data: {str(e)}")

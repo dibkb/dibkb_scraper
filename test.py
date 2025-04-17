@@ -1,16 +1,21 @@
 from dibkb_scraper import AmazonScraper
 from dibkb_scraper.playwright import PlaywrightScraper
 import asyncio
-asin = "B0DFB26FD8"
+asin = "B0DB2LWFNY"
 
-scraper = AmazonScraper(asin)
-print(scraper.get_html())
 
-# async def main():
-#     scraper = PlaywrightScraper()
-#     await scraper.initialize()
-#     print(await scraper.get_html_content("https://www.amazon.in/dp/B0DFB26FD8"))
-#     await scraper.close()
 
-# if __name__ == "__main__":
-#     asyncio.run(main())
+async def main():
+    # scraper = PlaywrightScraper()
+    # await scraper.initialize()
+    # html = (await scraper.get_html_content(f"https://www.amazon.in/dp/{asin}"))
+    # await scraper.close()
+    # print(html)
+    # print("--------------------------------")
+    scraper = AmazonScraper(asin)
+    soup = scraper._get_soup()
+    # print(soup)
+    print(scraper.get_all_details())
+
+if __name__ == "__main__":
+    asyncio.run(main())
