@@ -322,38 +322,39 @@ class AmazonScraper:
             
             
             
-    def get_all_details(self) -> AmazonProductResponse:
+    def get_all_details(self):
         """Get all product details in a single dictionary"""
         if not self.soup:
-            return AmazonProductResponse(
-                error="Failed to fetch page",
-                product=Product(
-                    pricing = None,
-                    description=Description(),
-                    specifications=Specifications(),
-                    ratings=Ratings(),
-                    reviews=[]
-                )
-            )
-        return AmazonProductResponse(
-            product=Product(
-                title=self.get_product_title(),
-                image = self.get_product_images(),
-                price = self.get_selling_price(),
-                categories=self.get_tags(),
-                description=Description(
-                    highlights=self.get_about()
-                ),
-                specifications=Specifications(
-                    technical=self.get_technical_info(),
-                    additional=self.get_additional_info(),
-                    details=self.get_product_details()
-                ),
-                ratings=self.get_ratings(),
-                reviews=self.get_all_reviews(),
-                related_products=self.get_related_products()
-            )
-        )
+            return {
+                "error":"Failed to fetch page",
+                "product":{
+                    "pricing":None,
+                    "description":None,
+                    "specifications":None,
+                    "ratings":None,
+                    "reviews":[]
+                }
+                
+            }
+        return {
+            "product":{
+                "title":self.get_product_title(),
+                "image":self.get_product_images(),
+                "price":self.get_selling_price(),
+                "categories":self.get_tags(),
+                "description":{
+                    "highlights":self.get_about()
+                },
+                "specifications":{
+                    "technical":self.get_technical_info(),
+                    "additional":self.get_additional_info(),
+                    "details":self.get_product_details()
+                },
+                "ratings":self.get_ratings(),
+                "reviews":self.get_all_reviews(),
+                "related_products":self.get_related_products()
+            }
+        }
     
     def get_html(self) -> str:
         return self.soup.prettify()
