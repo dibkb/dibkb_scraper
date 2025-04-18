@@ -2,14 +2,16 @@ from setuptools import setup, find_packages
 
 setup(
     name="dibkb_scraper",
-    version="0.3.2",
+    version="0.3.4",
     packages=find_packages(),
     install_requires=[
         "httpx",
         "beautifulsoup4",
         "bs4",
         "pydantic",
-        "fake-useragent"
+        "fake-useragent",
+        "playwright_stealth",
+        "pytest-playwright"
     ],
     author="Dibas K Borborah",
     author_email="dibas9110@gmail.com",

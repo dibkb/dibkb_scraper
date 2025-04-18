@@ -8,11 +8,11 @@ import json
 
 
 class AmazonScraper:
-    def __init__(self, asin: str):
+    def __init__(self, asin: str, soup: Optional[BeautifulSoup]=None):
         self.asin = asin
         self.url = f"https://www.amazon.in/dp/{self.asin}"
         self.headers = make_headers()
-        self.soup = self._get_soup()
+        self.soup = soup if soup else self._get_soup()
     
     
     def page_html_to_text(self,name:Optional[str]=None):
@@ -76,8 +76,14 @@ class AmazonScraper:
             breadcrumbs = self.soup.find("ul", {"class": "a-unordered-list a-horizontal a-size-small"})
             if breadcrumbs:
                 return [x.text.strip() for x in breadcrumbs.find_all("a")]
-            else:
-                return []
+            cates = self.soup.find_all("div", {"class": "a-expander-content a-expander-partial-collapse-content", "data-expanded": "false"})
+
+            breadcrumbs = []
+            for cate in cates:
+                # Find all links that contain the breadcrumb class, regardless of normal/child class
+                childs = cate.find_all("a", {"class": lambda c: c and "_seo-breadcrumb-mobile-card_style_breadcrumbInlineLinks__KBCjn" in c})
+                breadcrumbs.extend([x.text.strip() for x in childs])
+            return breadcrumbs
         except AttributeError:
             return []
 
@@ -121,20 +127,53 @@ class AmazonScraper:
 
     def get_product_details(self)->Dict[str,str]:
         try:
-            div = self.soup.find("div", {"id": "detailBullets_feature_div"})
-            if not div:
-                return {}
             info = {}
-            for li in div.find_all("span",{"class" : "a-list-item"}):
-                spans = li.find_all("span")
-                if len(spans) == 2:
-                    key = extract_text(spans[0].text.strip())
-                    value = extract_text(spans[1].text.strip())
-                    info[key] = value
+            
+            # Try first approach - detail bullets feature div
+            div = self.soup.find("div", {"id": "detailBullets_feature_div"})
+            if div:
+                for li in div.find_all("span", {"class": "a-list-item"}):
+                    spans = li.find_all("span")
+                    if len(spans) >= 2:
+                        key = extract_text(spans[0].text.strip())
+                        value = extract_text(spans[1].text.strip())
+                        if key and value:  # Only add if both key and value exist
+                            info[key] = value
+                
+                if info:  # If we found details, return them
+                    return info
+            
+            # Try second approach - unordered lists with a-list-item spans
+            uls = self.soup.find_all("ul", {"class": "a-unordered-list a-nostyle a-vertical a-spacing-none"})
+            for ul in uls:
+                for li in ul.find_all("span", {"class": "a-list-item"}):
+                    spans = li.find_all("span")
+                    if len(spans) >= 2:
+                        key = extract_text(spans[0].text.strip())
+                        value = extract_text(spans[1].text.strip())
+                        if key and value:  # Only add if both key and value exist
+                            info[key] = value
+            
+            # Try third approach - detail sections table
+            detail_table = self.soup.find("table", {"id": "productDetails_detailBullets_sections1"})
+            if detail_table and not info:
+                for row in detail_table.find_all("tr"):
+                    try:
+                        key_elem = row.find("th")
+                        val_elem = row.find("td")
+                        if key_elem and val_elem:
+                            key = extract_text(key_elem.text.strip())
+                            value = extract_text(val_elem.text.strip())
+                            if key and value:
+                                info[key] = value
+                    except AttributeError:
+                        continue
+            
             return info
-
+            
         except Exception as e:
-            return {"error": str(e)}
+            print(f"Error extracting product details: {str(e)}")
+            return {}
 
     def get_rating_percentage(self):
         try:
@@ -201,6 +240,17 @@ class AmazonScraper:
                         result["rating"] = float(ratings_text[0])
                     except (ValueError, TypeError):
                         pass
+            # alternate rating element
+            rating_elem = None
+            rating_elem = self.soup.find("span", {"data-hook": "average-stars-rating-text"})
+            if rating_elem is None:
+                rating_elem = self.soup.find("span", {"data-hook": "rating-out-of-text"})
+            ratings_text = rating_elem.text.strip() if rating_elem else None
+            if ratings_text:
+                try:
+                    result["rating"] = float(ratings_text.split()[0])
+                except (ValueError, TypeError):
+                    pass
 
             # Get review count
             review_elem = self.soup.find("span", {"data-hook": "total-review-count"})
@@ -216,23 +266,23 @@ class AmazonScraper:
                 try:
                     alt_review_elem = self.soup.find("span", {"class": "reviewCountTextLinkedHistogram"})
                     if alt_review_elem and alt_review_elem.get("title"):
-                        result.rating = float(alt_review_elem["title"].strip().split()[0])
+                        result['rating'] = float(alt_review_elem["title"].strip().split()[0])
                 except (ValueError, TypeError, AttributeError):
                     pass
             
             rating_percentage = self.get_rating_percentage()
-            
 
-            number_to_word = {1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five'}
-            star_ratings = {}
-            for stars in range(1, 6):
-                percentage = getattr(rating_percentage, f"{number_to_word[stars]}_star")
+            if(rating_percentage['one_star'] is not None):
+                number_to_word = {1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five'}
+                star_ratings = {}
+                for stars in range(1, 6):
+                    percentage = getattr(rating_percentage, f"{number_to_word[stars]}_star")
 
-                count = math.floor(percentage * result["review_count"] / 100) if percentage and result["review_count"] else None
+                    count = math.floor(percentage * result["review_count"] / 100) if percentage and result["review_count"] else None
 
-                star_ratings[f"{number_to_word[stars]}_star"] = {"count":count, "percentage":percentage}
+                    star_ratings[f"{number_to_word[stars]}_star"] = {"count":count, "percentage":percentage}
 
-            result["rating_stats"] = star_ratings
+                result["rating_stats"] = star_ratings
             return result
             
         except Exception as e:
@@ -322,8 +372,12 @@ class AmazonScraper:
         """
         reviews = []
         try:
-
+            review_elem = None
             review_elem = self.soup.find_all("div", {"class": "review-text-content"})
+            if review_elem is None or len(review_elem) == 0:
+                review_elem = self.soup.find_all("span", {"data-hook": "review-body"})
+                for x in review_elem:
+                    print(x.text.strip())
 
             for x in review_elem:
                 reviews.append(x.text.strip())
