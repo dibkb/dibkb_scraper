@@ -1,5 +1,5 @@
 import re
-from typing import Dict
+from typing import Dict,List
 from fake_useragent import UserAgent
 def filter_unicode(input_string)->str:
     return input_string.encode('ascii', 'ignore').decode()
@@ -47,3 +47,13 @@ AMAZON_HEADERS = {
     "Referer": "https://www.google.com/",
     "Alt-Used": "www.amazon.in"
 } 
+
+
+def extract_image_id(images:List[str])->List[str]:
+    img_ids = [
+        image.split("/I/")[-1].split("._")[0]
+        for image in images
+        if len(image.split("/I/")) > 1
+    ]
+    valid_ids = [img_id for img_id in img_ids if len(img_id) == 11]
+    return valid_ids

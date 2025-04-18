@@ -1,5 +1,5 @@
 import math
-from .utils import extract_text, filter_unicode, make_headers
+from .utils import extract_text, filter_unicode, make_headers,extract_image_id
 import httpx
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union
@@ -32,8 +32,15 @@ class AmazonScraper:
 
     def get_product_title(self) -> Optional[str]:
         try:
-            title_elem = self.soup.find('input', {'id': 'productTitle'})
-            return title_elem.get('value') if title_elem else None
+            title_elem = self.soup.find('span', {'id': 'productTitle'})
+            title = title_elem.text.strip() if title_elem else None
+            if title:
+                return title
+    
+            title = self.soup.find('span', {'id': 'title', 'class': 'a-size-small'})
+            title = title.text.strip() if title else None
+
+            return title
         except AttributeError:
             return None
 
@@ -225,44 +232,45 @@ class AmazonScraper:
         try:
             # Find the script that contains the image data
             script = self.soup.find("script", text=lambda t: t and "ImageBlockATF" in t)
-            if not script:
-                return None
             
             # Extract the colorImages data using string manipulation
-            script_text = script.text
-            start_idx = script_text.find("'colorImages': { 'initial': ")
-            if start_idx == -1:
-                return None
+            script_text = script.text if script else None
+            if script_text:
+                start_idx = script_text.find("'colorImages': { 'initial': ")
+                if start_idx != -1:
+                    start_idx += len("'colorImages': { 'initial': ")
+                    bracket_count = 0
+                    end_idx = start_idx
+                    
+                    for i in range(start_idx, len(script_text)):
+                        if script_text[i] == '[':
+                            bracket_count += 1
+                        elif script_text[i] == ']':
+                            bracket_count -= 1
+                            if bracket_count == 0:
+                                end_idx = i + 1
+                                break
+                    
+                    json_str = script_text[start_idx:end_idx]
+                    image_data = json.loads(json_str)
+                    
+                    # Extract hiRes URLs from the image data
+                    images = [img["hiRes"] for img in image_data if "hiRes" in img]
+                    
+                    # Extract image IDs as before
+                    valid_ids = extract_image_id(images)
+                    if valid_ids:
+                        return valid_ids
+
+            images = []
+            imgs = self.soup.find_all("img", attrs={"data-a-dynamic-image": True})
+            valid_images = [img.get("src") for img in imgs]
+            valid_ids = extract_image_id(valid_images)
+            if valid_ids:
+                return valid_ids
             
-            # Find the matching closing bracket
-            start_idx += len("'colorImages': { 'initial': ")
-            bracket_count = 0
-            end_idx = start_idx
-            
-            for i in range(start_idx, len(script_text)):
-                if script_text[i] == '[':
-                    bracket_count += 1
-                elif script_text[i] == ']':
-                    bracket_count -= 1
-                    if bracket_count == 0:
-                        end_idx = i + 1
-                        break
-            
-            json_str = script_text[start_idx:end_idx]
-            image_data = json.loads(json_str)
-            
-            # Extract hiRes URLs from the image data
-            images = [img["hiRes"] for img in image_data if "hiRes" in img]
-            
-            # Extract image IDs as before
-            img_ids = [
-                image.split("/I/")[-1].split("._")[0]
-                for image in images
-                if len(image.split("/I/")) > 1
-            ]
-            
-            valid_ids = [img_id for img_id in img_ids if len(img_id) == 11]
-            return valid_ids if valid_ids else None
+
+                
 
         except Exception as e:
             print(f"Error extracting product images: {str(e)}")
