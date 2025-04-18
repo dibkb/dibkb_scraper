@@ -14,9 +14,7 @@ async def main():
     # print("--------------------------------")
     scraper = AmazonScraper(asin)
     soup = scraper._get_soup()
-    print(soup)
-    print("--------------------------------")
-    print(scraper.get_all_details())
+    # print(scraper.get_tags())
     print("--------------------------------")
 if __name__ == "__main__":
     asyncio.run(main())

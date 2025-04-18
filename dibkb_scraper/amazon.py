@@ -49,16 +49,25 @@ class AmazonScraper:
             price_elem = self.soup.find("div", {"class": "a-section aok-hidden twister-plus-buying-options-price-data"})
             if price_elem:
                 price_data = json.loads(price_elem.text.strip())
-                display_price = price_data["desktop_buybox_group_1"][0]["displayPrice"]
-                price = float(display_price.replace("₹", "").replace(",", ""))
-                return price
-            
-            price_elem = self.soup.find("span", {"class": "a-price-whole"})
-            if price_elem:
-                price = float(price_elem.text.strip().replace("₹", "").replace(",", ""))
+                display_price = None
+                try:
+                    display_price = price_data["desktop_buybox_group_1"][0]["displayPrice"]
+                except (KeyError, IndexError):
+                    pass
                 
-                return price
+                if not display_price:
+                    try:
+                        display_price = price_data["mobile_buybox_group_1"][0]["displayPrice"]
+                    except (KeyError, IndexError):
+                        pass
+                
+                if display_price:
+                    price = float(display_price.replace("₹", "").replace(",", ""))
+                    return price
+            
             return None
+            
+            
         except (AttributeError, json.JSONDecodeError, KeyError):
             return None
 
@@ -67,7 +76,8 @@ class AmazonScraper:
             breadcrumbs = self.soup.find("ul", {"class": "a-unordered-list a-horizontal a-size-small"})
             if breadcrumbs:
                 return [x.text.strip() for x in breadcrumbs.find_all("a")]
-            return []
+            else:
+                return []
         except AttributeError:
             return []
 
